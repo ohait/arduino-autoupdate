@@ -38,7 +38,7 @@ void setup() {
 
   delay(100);
   // check if there is a new img
-  au(au_host, au_port, "test");
+  au(au_host, au_port, "example");
 }
 
 void loop() {

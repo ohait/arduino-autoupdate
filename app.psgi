@@ -2,23 +2,19 @@
 use strict;
 use warnings;
 
+our $PROJECTS_DIR = "./arduino";
+
+use Time::HiRes;
 use Data::Dumper;
 use Plack::Request;
-
-for my $dir (<arduino/*>) {
-    $dir =~ m{/(.*)} or next;
-    my $bin = "$dir/build/$1.ino.bin";
-    -r $bin or next;
-    print STDERR "$bin\n";
-}
 
 sub dispatch {
     my ($req) = @_;
     if ($req->path =~ m{^/autoupdate/(\w+)}) {
         my $name = $1;
-        my $build_file = "arduino/$1/build/$1.ino.bin";
+        my $build_file = "$PROJECTS_DIR/$name/build/$name.ino.bin";
         -f $build_file or die "404 Not Found";
-        my $auh = $req->header('x-au');
+        my $auh = $req->header('x-au')//'%VER%0000%';
         my $bin = do {
             local $/;
             open my $F, "<:raw", $build_file;
@@ -39,25 +35,21 @@ sub dispatch {
 }
 
 sub {
+    my $t0 = Time::HiRes::time();
     my ($req) = Plack::Request->new(@_);
+    my $ip = $req->address // '0.0.0.0';
+    my @xff = split /,\s*/, $req->header('x-forwarded-for')//'';
+    while ($ip =~ m{^(127\.)} and @xff) {
+        $ip = shift(@xff) // '0.0.0.0';
+    }
     my $res;
     eval {
-        eval {
-            $res = dispatch($req);
-            1;
-        } or do {
-            my $err = $@;
-            my $code = 500;
-            $err =~ s{^(\d\d\d) }{} and $code = $1;
-            $res = $req->new_response($code);
-            $res->body($err);
-        };
-        $res->header(author => "oha[at]oha.it");
+        $res = dispatch($req);
         1;
     } or do {
         my $err = $@ // 'Error';
         my $code = 500;
-        $err =~ s{^([45]\d\d) ?}{} and $code = $1;
+        $err =~ s{^([345]\d\d) ?}{} and $code = $1;
         $res = $req->new_response($code);
         warn "$code $err";
         if ($code < 500) {
@@ -65,6 +57,9 @@ sub {
         }
         $res->body("$code $err");
     };
+    $res->header(author => "oha[at]oha.it");
+    my $t1 = Time::HiRes::time();
+    printf STDERR "%s [%s] %.2fms %d %s %s\n", $ip, scalar gmtime, ($t1-$t0)*1000., $res->code, $req->method, $req->path;
     return $res->finalize;
 };
 
