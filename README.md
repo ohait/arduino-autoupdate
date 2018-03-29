@@ -23,10 +23,14 @@ Global variables use 33820 bytes (41%) of dynamic memory, leaving 48100 bytes fo
 oha@raspberrypi:~/work/firmware/arduino/example $
 ```
 
+If you use the mqtt template, the Makefile will also:
+```
+mosquitto_pub -t 'MyHome/home/sys/update' -m "*"
+```
+
 ### Upload
 
 The given example checks for a new version of the software only on book, so you need to reset it. Note: the first time you have to upload the image via usb connection, I'm assuming you already did.
-
 
 ```
 INIT /home/oha/work/firmware/arduino/example/example.ino Mar 27 2018 18:50:54
@@ -63,6 +67,8 @@ connected: 192.168.1.102
 [INFO] nothing to update
 ```
 
+If you are using the MQTT template, the update is triggered on `MyHome/home/sys/update`, no need to reset the device.
+
 ### Plack
 
 here what happen on plack during the autoupdate:
@@ -71,10 +77,14 @@ here what happen on plack during the autoupdate:
 oha@raspberrypi:~/work/firmware $ plackup
 HTTP::Server::PSGI: Accepting connections at http://0:5000/
 
-AU 'example' client: Tue Mar 27 18:50:43 2018, server: Tue Mar 27 18:53:25 2018
+AU 'example' dev: '366464'
+client: Tue Mar 27 18:50:43 2018
+server: Tue Mar 27 18:53:25 2018
 192.168.1.1 [Tue Mar 27 18:54:10 2018] 11.25ms 200 GET /autoupdate/example
 
-AU 'example' client: Tue Mar 27 18:53:25 2018, server: Tue Mar 27 18:53:25 2018
+AU 'example' dev: '366464'
+client: Tue Mar 27 18:53:25 2018
+server: Tue Mar 27 18:53:25 2018
 304 Not Modified at /home/oha/work/firmware/app.psgi line 25.
 192.168.1.1 [Tue Mar 27 18:54:27 2018] 8.27ms 304 GET /autoupdate/example
 ```
